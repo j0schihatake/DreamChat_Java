@@ -69,27 +69,27 @@ public class ChatService {
         Optional<User> user1Opt = userRepository.findById(user1Id);
         Optional<User> user2Opt = userRepository.findById(user2Id);
 
-        if (user1Opt.isPresent() && user2Opt.isPresent()) {
-            User user1 = user1Opt.get();
-            User user2 = user2Opt.get();
-
-            // Ищем существующий приватный чат
-            Optional<Chat> existingChat = chatRepository.findPrivateChatBetweenUsers(user1, user2);
-            if (existingChat.isPresent()) {
-                return existingChat.get();
-            }
-
-            // Создаем новый чат
-            Chat newChat = new Chat();
-            newChat.setType(com.j0schi.DreamChat.enums.ChatType.PRIVATE);
-            newChat.setTitle(user2.getUsername());
-            newChat.getParticipants().add(user1);
-            newChat.getParticipants().add(user2);
-
-            return chatRepository.save(newChat);
+        if (user1Opt.isEmpty() || user2Opt.isEmpty()) {
+            throw new RuntimeException("Users not found");
         }
 
-        throw new RuntimeException("Users not found");
+        User user1 = user1Opt.get();
+        User user2 = user2Opt.get();
+
+        // Пробуем найти чат через альтернативный метод
+        Optional<Chat> existingChat = chatRepository.findPrivateChatByUserIds(user1Id, user2Id);
+        if (existingChat.isPresent()) {
+            return existingChat.get();
+        }
+
+        // Создаем новый чат
+        Chat newChat = new Chat();
+        newChat.setType(com.j0schi.DreamChat.enums.ChatType.PRIVATE);
+        newChat.setTitle(user2.getUsername() + " & " + user1.getUsername());
+        newChat.getParticipants().add(user1);
+        newChat.getParticipants().add(user2);
+
+        return chatRepository.save(newChat);
     }
 
     @Transactional
