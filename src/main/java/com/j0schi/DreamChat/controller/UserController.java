@@ -19,8 +19,22 @@ public class UserController {
     private final ChatService chatService;
 
     @GetMapping("/search")
-    public ResponseEntity<User> searchUser(@RequestParam String phoneNumber) {
-        Optional<User> user = userRepository.findByPhoneNumber(phoneNumber.replaceAll("[^0-9]", ""));
+    public ResponseEntity<?> searchUser(@RequestParam String phoneNumber,
+                                        @RequestParam(required = false) String currentUserId) {
+        String normalizedPhone = phoneNumber.replaceAll("[^0-9]", "");
+
+        // Если пользователь ищет самого себя
+        if (currentUserId != null) {
+            Optional<User> currentUser = userRepository.findById(currentUserId);
+            if (currentUser.isPresent() &&
+                    currentUser.get().getPhoneNumber().equals(normalizedPhone)) {
+                // Возвращаем информацию о чате с самим собой
+                Chat selfChat = chatService.findOrCreateSelfChat(currentUserId);
+                return ResponseEntity.ok(selfChat);
+            }
+        }
+
+        Optional<User> user = userRepository.findByPhoneNumber(normalizedPhone);
         return user.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
