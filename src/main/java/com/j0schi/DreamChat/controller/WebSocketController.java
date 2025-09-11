@@ -1,11 +1,13 @@
 package com.j0schi.DreamChat.controller;
 
-import com.j0schi.DreamChat.enums.MessageStatus;
+import com.j0schi.DreamChat.dto.MessageDTO;
+import com.j0schi.DreamChat.mapper.MessageMapper;
 import com.j0schi.DreamChat.model.Message;
 import com.j0schi.DreamChat.model.TypingEvent;
 import com.j0schi.DreamChat.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -17,51 +19,63 @@ import org.springframework.stereotype.Controller;
 public class WebSocketController {
 
     private final ChatService chatService;
+    private final MessageMapper messageMapper;
 
-    @MessageMapping("/chat.send")
+    @MessageMapping("/chat.send.{chatId}")
     @SendTo("/topic/chat/{chatId}")
-    public Message sendMessage(Message message, SimpMessageHeaderAccessor headerAccessor) {
-        log.info("Received message: {} from user: {}", message.getContent(), message.getSenderId());
+    public MessageDTO sendMessage(@DestinationVariable String chatId,
+                                  MessageDTO messageDTO,
+                                  SimpMessageHeaderAccessor headerAccessor) {
+        log.info("Received message for chat {}: {}", chatId, messageDTO.getContent());
 
-        // Устанавливаем статус отправлено
-        message.setStatus(MessageStatus.SENT);
+        try {
+            Message message = messageMapper.toEntity(messageDTO);
+            message.setChatId(chatId);
 
-        // Отправляем в Kafka
-        chatService.sendMessage(message);
-
-        return message;
+            Message sentMessage = chatService.sendMessage(message);
+            return messageMapper.toDTO(sentMessage);
+        } catch (Exception e) {
+            log.error("Failed to process message", e);
+            // Устанавливаем статус ошибки
+            messageDTO.setStatus(com.j0schi.DreamChat.enums.MessageStatus.FAILED);
+            return messageDTO;
+        }
     }
 
-    @MessageMapping("/chat.typing")
+    @MessageMapping("/chat.typing.{chatId}")
     @SendTo("/topic/typing/{chatId}")
-    public TypingEvent handleTyping(TypingEvent typingEvent) {
+    public TypingEvent handleTyping(@DestinationVariable String chatId,
+                                    TypingEvent typingEvent) {
         log.info("User {} is {} in chat {}",
                 typingEvent.getUserId(),
                 typingEvent.isTyping() ? "typing" : "stopped typing",
-                typingEvent.getChatId());
+                chatId);
+
+        typingEvent.setChatId(chatId);
+        chatService.sendTypingEvent(typingEvent);
 
         return typingEvent;
     }
 
-    @MessageMapping("/chat.seen")
+    @MessageMapping("/chat.seen.{chatId}")
     @SendTo("/topic/seen/{chatId}")
-    public MessageStatus handleSeen(String messageId, String userId) {
-        log.info("User {} marked message {} as seen", userId, messageId);
+    public String handleSeen(@DestinationVariable String chatId,
+                             String messageId,
+                             String userId) {
+        log.info("User {} marked message {} as seen in chat {}", userId, messageId, chatId);
 
-        // Обновляем статус сообщения в БД
         chatService.markMessageAsRead(messageId, userId);
-
-        return MessageStatus.READ;
+        return messageId;
     }
 
-    @MessageMapping("/chat.delete")
+    @MessageMapping("/chat.delete.{chatId}")
     @SendTo("/topic/delete/{chatId}")
-    public String handleDelete(String messageId, String userId) {
-        log.info("User {} deleting message {}", userId, messageId);
+    public String handleDelete(@DestinationVariable String chatId,
+                               String messageId,
+                               String userId) {
+        log.info("User {} deleting message {} in chat {}", userId, messageId, chatId);
 
-        // Удаляем сообщение (soft delete)
         chatService.deleteMessage(messageId, userId);
-
         return messageId;
     }
 }

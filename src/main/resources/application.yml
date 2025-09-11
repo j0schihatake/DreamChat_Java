@@ -1,6 +1,43 @@
-spring:
-  application:
-    name: DreamChat
-
+# Server
 server:
   port: 8081
+
+# Database
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/chatdb
+    username: chatuser
+    password: chatpassword
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        show_sql: true
+        format_sql: true
+
+  # Redis
+  redis:
+    host: localhost
+    port: 6379
+
+  # Kafka
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: chat-group
+      auto-offset-reset: earliest
+
+  # WebSocket
+  websocket:
+    allowed-origins: "*"
+
+  # Logging
+  logging:
+    level:
+      com.j0schi.DreamChat: DEBUG
