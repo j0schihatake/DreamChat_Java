@@ -30,7 +30,7 @@ public class ChatService {
     private final UserRepository userRepository;
     private final ChatRepository chatRepository;
     private final MessageRepository messageRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public List<Chat> getUserChats(String userId) {
         log.info("Getting chats for user: {}", userId);
@@ -188,7 +188,7 @@ public class ChatService {
             message.setChat(chatOpt.get());
 
             // Сохраняем сообщение в БД
-            Message savedMessage = messageRepository.save(message);
+            Message savedMessage = saveMessage(message);
 
             // Обновляем последнее сообщение в чате
             Chat chat = chatOpt.get();
@@ -206,6 +206,25 @@ public class ChatService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to send message", e);
         }
+    }
+
+    public Message saveMessage2(Message message) {
+        if (message.getId() != null && messageRepository.existsById(message.getId())) {
+            return messageRepository.saveAndFlush(message);
+        } else {
+            return messageRepository.save(message);
+        }
+    }
+
+    public Message saveMessage(Message message) {
+        // Создаем новый объект вместо использования пришедшего
+        Message newMessage = new Message();
+        newMessage.setContent(message.getContent());
+        newMessage.setChatId(message.getChatId());
+        newMessage.setSenderId(message.getSenderId());
+        // установите остальные поля
+
+        return messageRepository.save(newMessage);
     }
 
     public List<Message> getChatHistory(String chatId, int page, int size) {
