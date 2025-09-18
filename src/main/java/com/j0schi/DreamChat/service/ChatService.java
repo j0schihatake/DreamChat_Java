@@ -101,6 +101,11 @@ public class ChatService {
     }
 
     @Transactional
+    public List<Chat> findChatsById(String userId){
+        return chatRepository.findByUserId(userId);
+    }
+
+    @Transactional
     public Chat findOrCreatePrivateChat(String user1Id, String user2Id) {
         log.info("Finding or creating private chat between {} and {}", user1Id, user2Id);
 

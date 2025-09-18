@@ -47,8 +47,12 @@ public class UserController {
 
     @GetMapping("/{userId}/chats")
     public ResponseEntity<List<Chat>> getUserChats(@PathVariable String userId) {
-        // Здесь будет логика получения чатов пользователя
-        return ResponseEntity.ok(List.of());
+        try {
+            List<Chat> chat = chatService.findChatsById(userId);
+            return ResponseEntity.ok(chat);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PostMapping("/{userId}/chats")
