@@ -4,6 +4,7 @@ import com.j0schi.DreamChat.postgres.mapper.MessageMapper;
 import com.j0schi.DreamChat.model.Message;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -162,8 +163,12 @@ public class MessageRepository {
         return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
-    public List<Message> findByChatIdOrderByTimestampDesc(String chatId, PageRequest of) {
-        return null;
+    public List<Message> findByChatIdOrderByTimestampDesc(String chatId, Pageable pageable) {
+        String query = String.format(
+                "SELECT * FROM messages WHERE chat_id = '%s' ORDER BY timestamp DESC LIMIT %d OFFSET %d",
+                chatId, pageable.getPageSize(), pageable.getOffset()
+        );
+        return getMessages(query);
     }
 
     /**

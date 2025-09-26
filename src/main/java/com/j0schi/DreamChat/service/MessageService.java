@@ -4,6 +4,9 @@ import com.j0schi.DreamChat.postgres.repository.MessageRepository;
 import com.j0schi.DreamChat.postgres.ChatQueryUtil;
 import com.j0schi.DreamChat.model.Message;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,12 +29,13 @@ public class MessageService {
         return null;
     }
 
-    public Message getMessageById(String id) {
-        return messageRepository.findById(id);
+    public List<Message> getChatMessages(String chatId, int limit, int offset) {
+        Pageable pageable = PageRequest.of(offset / limit, limit, Sort.by("timestamp").descending());
+        return messageRepository.findByChatIdOrderByTimestampDesc(chatId, pageable);
     }
 
-    public List<Message> getChatMessages(String chatId, int limit, int offset) {
-        return messageRepository.findByChatId(chatId, limit, offset);
+    public Message getMessageById(String id) {
+        return messageRepository.findById(id);
     }
 
     public List<Message> getChatMessages(String chatId) {
