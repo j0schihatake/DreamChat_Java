@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collections;
 import java.util.List;
 
 @Repository
@@ -164,11 +165,13 @@ public class MessageRepository {
     }
 
     public List<Message> findByChatIdOrderByTimestampDesc(String chatId, Pageable pageable) {
-        String query = String.format(
-                "SELECT * FROM messages WHERE chat_id = '%s' ORDER BY timestamp DESC LIMIT %d OFFSET %d",
-                chatId, pageable.getPageSize(), pageable.getOffset()
-        );
-        return getMessages(query);
+        try {
+            String query = "SELECT * FROM messages WHERE chat_id = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?";
+            return jdbcTemplate.query(query, messageMapper, chatId, pageable.getPageSize(), pageable.getOffset());
+        } catch (Exception ex) {
+            System.err.println("Query error for chatId: " + chatId + " - " + ex.getMessage());
+            return Collections.emptyList(); // Возвращаем пустой список вместо null
+        }
     }
 
     /**
