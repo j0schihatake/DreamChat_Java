@@ -1,9 +1,10 @@
 package com.j0schi.DreamChat.service;
 
+import com.j0schi.DreamChat.enums.UserStatus;
 import com.j0schi.DreamChat.model.AuthRequest;
 import com.j0schi.DreamChat.model.AuthResponse;
 import com.j0schi.DreamChat.model.User;
-import com.j0schi.DreamChat.repository.UserRepository;
+import com.j0schi.DreamChat.postgres.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.Optional;
@@ -35,7 +36,6 @@ public class AuthService {
             return new AuthResponse(true, user.getId(), user.getUsername(), "Авторизация успешна");
         }
 
-        // Создаем нового пользователя (для тестов)
         User newUser = new User();
         newUser.setPhoneNumber(phoneNumber);
         newUser.setDeviceId(request.getDeviceId());
@@ -54,9 +54,17 @@ public class AuthService {
 
         if (user.isPresent() && user.get().isAuthorized()) {
             return new AuthResponse(true, user.get().getId(), user.get().getUsername(), "Авторизован");
+        }else{
+            // Только для тестов дальше надо добавить логику регистрации в телеграм.
+            User newUser = new User();
+            newUser.setStatus(UserStatus.AWAY);
+            newUser.setPhoneNumber(phoneNumber);
+            newUser.setDeviceId("phone" + phoneNumber);
+            userRepository.save(newUser);
+            return new AuthResponse(true, user.get().getId(), user.get().getUsername(), "Авторизован");
         }
 
-        return new AuthResponse(false, "Не авторизован");
+        //return new AuthResponse(false, "Не авторизован");
     }
 
     private String normalizePhoneNumber(String phone) {
