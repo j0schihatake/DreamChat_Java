@@ -170,7 +170,7 @@ public class MessageRepository {
             return jdbcTemplate.query(query, messageMapper, chatId, pageable.getPageSize(), pageable.getOffset());
         } catch (Exception ex) {
             System.err.println("Query error for chatId: " + chatId + " - " + ex.getMessage());
-            return Collections.emptyList(); // Возвращаем пустой список вместо null
+            return Collections.emptyList();
         }
     }
 
